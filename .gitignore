@@ -1,0 +1,13 @@
+node_modules/
+dist/
+__pycache__/
+*.pyc
+.DS_Store
+npm-debug.log*
+
+# Generated Apple Health data contains precise locations and timestamps.
+/public/data/routes.json
+
+# Local QA captures may contain personal route locations.
+/docs/*preview*.png
+/docs/*preview*.jpg
