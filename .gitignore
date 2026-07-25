@@ -10,6 +10,9 @@ npm-debug.log*
 
 # Generated Apple Health data contains precise locations and timestamps.
 /public/data/routes.json
+/public/data/metrics/
+/public/data/import-report.json
+/public/data/.workout-route-data
 
 # Raw Apple Health exports contain health records and precise locations.
 **/apple_health_export/

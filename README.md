@@ -16,21 +16,24 @@
 - 查看距离、时长、爬升和配速
 - 高亮所选路线以及起点、终点
 - 一键适应当前路线或查看全部路线
+- 查看心率、海拔曲线，并与地图位置按运动时间联动
 - 桌面端和移动端自适应布局
 - Apple 健康数据只在本机解析
 
-## FEATURE：心率、海拔与路线联动（规划中）
+## FEATURE：心率、海拔与路线联动
 
-后续版本计划在现有路线查看能力上增加运动指标联动：
+处理 Apple 健康导出数据后，项目可以：
 
-- 从 Apple 健康 Workout 及独立心率记录中提取平均、最低、最高心率和心率曲线。
-- 从 GPX 海拔点生成最低/最高海拔、累计爬升、累计下降和海拔曲线。
-- 以运动经过时间 `elapsedSec` 为统一时间轴，对齐心率、海拔和路线位置。
-- 在图表中悬停或拖动时，同步高亮 Leaflet 地图上的对应位置，并显示当时的时间、距离、心率和海拔。
-- 心率或海拔缺失时明确显示无数据，不使用 `0` 或推测值补齐。
-- 指标和精确轨迹继续只在本机处理，默认不上传到云端。
+- 从 Apple 健康 Workout 及独立心率记录中提取平均、最低、最高心率和心率曲线
+- 从 GPX 海拔点生成最低/最高海拔、累计爬升、累计下降和海拔曲线
+- 以运动经过时间 `elapsedSec` 为统一时间轴，对齐心率、海拔和路线位置
+- 在图表中悬停、拖动或使用方向键时，同步高亮 Leaflet 地图上的对应位置
+- 点击所选地图路线时，把图表定位到最近的轨迹时间
+- 显示当前位置对应的经过时间、距离、心率和海拔
+- 心率或海拔缺失时明确显示无数据，不使用 `0` 或推测值补齐
+- 列表仅加载指标摘要，展开指标面板后再按路线加载曲线文件
 
-这里的“联动/同步”指同一次运动内的数据时间轴对齐，不代表实时运动同步或跨设备云同步。当前版本已经读取 GPX 海拔并估算累计爬升，但尚未提供海拔曲线、累计下降、心率提取和图表联动。详细设计见[导入工具、运动指标与用户隔离规划](docs/IMPORT_AND_USER_ISOLATION_PLAN.md)。
+这里的“联动/同步”只指同一次运动内的数据时间轴对齐，不代表实时运动同步或跨设备云同步。指标和精确轨迹仍只在本机处理，默认不上传到云端。更完整的数据契约与后续架构见[导入工具、运动指标与用户隔离规划](docs/IMPORT_AND_USER_ISOLATION_PLAN.md)。
 
 ## 环境要求
 
@@ -66,37 +69,42 @@ apple_health_export/
 
 ```bash
 git clone https://github.com/SamXP2004/workoutRouteView.git
+git clone https://github.com/SamXP2004/workout-route-importer.git
+python3 -m pip install ./workout-route-importer
 cd workoutRouteView
 npm ci
 ```
 
 ## 三、处理健康数据
 
-在项目目录执行：
+数据解析由独立的 [Workout Route Importer](https://github.com/SamXP2004/workout-route-importer) 完成。在查看器项目目录执行：
 
 ```bash
 npm run import-health -- "/绝对路径/apple_health_export"
 ```
 
-脚本会：
+CLI 会：
 
 1. 流式读取大型 `export.xml` 或 `导出.xml`，不把完整 XML 加载进内存。
 2. 查找包含 `WorkoutRoute/FileReference` 的户外运动。
 3. 读取对应 GPX，提取经纬度、海拔和轨迹时间。
-4. 统一距离和能量单位，保留运动时间的原始时区。
-5. 简化地图轨迹并估算累计爬升。
-6. 生成本机文件 `public/data/routes.json`。
+4. 读取 Workout 心率统计，并把独立心率记录按运动时间和来源匹配到路线。
+5. 统一距离和能量单位，保留运动时间的原始时区。
+6. 分别简化地图轨迹、心率曲线和海拔曲线。
+7. 计算心率摘要、最低/最高海拔、累计爬升和累计下降。
+8. 生成路线索引、按路线拆分的指标文件和 `import-report.json`。
+9. 完整校验后原子替换 `public/data`；失败时保留上一次可用数据。
 
 可选参数：
 
 ```bash
-python3 scripts/import_apple_health.py \
+workout-route-importer import \
   "/绝对路径/apple_health_export" \
-  --output public/data/routes.json \
+  --output public/data \
   --tolerance 0.00006
 ```
 
-`routes.json` 包含精确坐标、运动日期、设备来源和运动元数据，已被 Git 忽略。
+可以在正式导入前运行 `workout-route-importer inspect`，导入后运行 `workout-route-importer validate public/data`。`routes.json`、`metrics/*.json` 和导入报告已被 Git 忽略。
 
 ## 四、加载并查看
 
@@ -122,7 +130,7 @@ VITE_TILE_MAX_ZOOM=20
 | 命令 | 用途 |
 | --- | --- |
 | `npm run dev` | 启动仅监听 `127.0.0.1` 的开发服务器 |
-| `npm run test` | 运行 JavaScript 和 Python 测试 |
+| `npm run test` | 运行查看器 JavaScript 测试 |
 | `npm run typecheck` | 执行 TypeScript/JSX 静态检查 |
 | `npm run privacy-check` | 检查 Git 跟踪文件和构建产物是否含敏感轨迹 |
 | `npm run check` | 依次运行测试、静态检查、安全构建和隐私检查 |
@@ -137,32 +145,36 @@ npm run build:private
 npm run preview
 ```
 
-`build:private` 生成的 `dist/data/routes.json` 含精确位置。不要部署、上传、压缩分享或提交整个 `dist` 目录。
+`build:private` 生成的 `dist/data/` 含精确位置和健康指标。不要部署、上传、压缩分享或提交整个 `dist` 目录。
 
 ## 数据口径
 
 - 分类来自 Apple Health 的 `workoutActivityType`。
 - 距离、时长来自 Workout 记录；支持常见距离单位转换为 km。
-- 爬升由 GPX 海拔点估算，不代表测绘级高程。
+- 心率优先使用 Workout 统计；缺少统计但有匹配采样时，由采样计算摘要并标记为 `derived`。
+- 心率记录按 Workout 时间窗口匹配，并优先匹配相同数据来源；重叠时选择时间跨度更短的运动。
+- 海拔、爬升和下降由 GPX 海拔点计算，不代表测绘级高程。
 - GPX 坐标使用 Ramer-Douglas-Peucker 算法简化，默认容差约 6 米。
+- 指标曲线最多保留 600 个均匀抽样点用于展示；摘要统计基于抽样前数据。
 - 缺失或无法识别的数据保留为空，不填充为 0。
 
 ## 项目结构
 
 ```text
 src/                         React + Leaflet 前端
-scripts/import_apple_health.py  Apple 健康导入脚本
 scripts/check_privacy.py        开源隐私检查
-tests/                       JavaScript 与 Python 测试
-public/data/README.md        本地数据目录说明
+tests/                       JavaScript 测试
+public/data/README.md        本地路线与指标数据目录说明
 docs/                        项目截图与后续规划
 ```
+
+Apple 健康解析、原子发布、JSON Schema 和 Python 测试位于独立的 [Workout Route Importer](https://github.com/SamXP2004/workout-route-importer) 项目。
 
 ## 后续规划
 
 - [导入工具、运动指标与用户隔离规划](docs/IMPORT_AND_USER_ISOLATION_PLAN.md)
 
-规划文档描述的是后续方向，不代表相关功能已经实现。当前版本没有账号、云端 API、数据库或多用户隔离。
+心率、海拔和地图联动已实现；导入向导、账号、云端 API、数据库和多用户隔离仍是后续方向。
 
 ## License
 

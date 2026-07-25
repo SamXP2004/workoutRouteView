@@ -1,9 +1,10 @@
+import { memo } from 'react'
 import { ChevronRight, Eye, EyeOff, Search } from 'lucide-react'
 import { ACTIVITY, ACTIVITY_ORDER } from '../constants'
 import { formatDate, formatDuration } from '../format'
 import ActivityIcon from './ActivityIcon'
 
-export default function Sidebar({
+function Sidebar({
   data,
   routes,
   selectedId,
@@ -117,3 +118,5 @@ export default function Sidebar({
     </aside>
   )
 }
+
+export default memo(Sidebar)
