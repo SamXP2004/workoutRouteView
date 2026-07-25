@@ -36,6 +36,8 @@ export default function Sidebar({
       <label className="search-box">
         <Search size={17} aria-hidden="true" />
         <input
+          id="route-search"
+          name="route-search"
           value={search}
           onChange={(event) => onSearch(event.target.value)}
           placeholder="搜索日期或来源"
@@ -62,7 +64,13 @@ export default function Sidebar({
       <div className="filter-row">
         <label>
           <span>年份</span>
-          <select data-testid="year-filter" value={year} onChange={(event) => onYear(event.target.value)}>
+          <select
+            id="year-filter"
+            name="year"
+            data-testid="year-filter"
+            value={year}
+            onChange={(event) => onYear(event.target.value)}
+          >
             <option value="all">全部年份</option>
             {years.map((item) => (
               <option value={item} key={item}>{item}年</option>

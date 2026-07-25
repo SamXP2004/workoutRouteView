@@ -2,6 +2,9 @@ import { useEffect, useRef } from 'react'
 import L from 'leaflet'
 import { ACTIVITY } from '../constants'
 
+const DEFAULT_TILE_URL = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+const DEFAULT_TILE_ATTRIBUTION = '&copy; OpenStreetMap contributors &copy; CARTO'
+
 function marker(color, label) {
   return L.divIcon({
     className: 'route-marker',
@@ -20,10 +23,10 @@ export default function MapCanvas({ routes, selected, showAll }) {
     if (!mapNode.current || mapRef.current) return
     const map = L.map(mapNode.current, { zoomControl: false })
     L.control.zoom({ position: 'topright' }).addTo(map)
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-      subdomains: 'abcd',
-      maxZoom: 20,
+    L.tileLayer(import.meta.env.VITE_TILE_URL || DEFAULT_TILE_URL, {
+      attribution: import.meta.env.VITE_TILE_ATTRIBUTION || DEFAULT_TILE_ATTRIBUTION,
+      subdomains: import.meta.env.VITE_TILE_SUBDOMAINS || 'abcd',
+      maxZoom: Number(import.meta.env.VITE_TILE_MAX_ZOOM || 20),
     }).addTo(map)
     map.setView([31.23, 121.47], 10)
     mapRef.current = map

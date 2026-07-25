@@ -1,13 +1,9 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
-import { fileURLToPath, URL } from 'node:url'
 
-export default defineConfig({
-  plugins: [react(), tailwindcss()],
-  resolve: {
-    alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url)),
-    },
-  },
-})
+export default defineConfig(({ command, mode }) => ({
+  plugins: [react()],
+  // Development serves local route data. A normal production build excludes
+  // public/ so private coordinates cannot be published by accident.
+  publicDir: command === 'serve' || mode === 'private' ? 'public' : false,
+}))

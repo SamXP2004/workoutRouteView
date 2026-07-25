@@ -1,9 +1,7 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import MapCanvas from './components/MapCanvas'
 import RouteDetails from './components/RouteDetails'
 import Sidebar from './components/Sidebar'
-
-const MapcnCanvas = lazy(() => import('./components/MapcnCanvas'))
 
 export default function App() {
   const [data, setData] = useState(null)
@@ -14,7 +12,6 @@ export default function App() {
   const [selectedId, setSelectedId] = useState(null)
   const [showAll, setShowAll] = useState(true)
   const [fitKey, setFitKey] = useState(0)
-  const [mapEngine, setMapEngine] = useState('leaflet')
 
   useEffect(() => {
     fetch('/data/routes.json')
@@ -75,31 +72,7 @@ export default function App() {
         onShowAll={setShowAll}
       />
       <section className="map-panel">
-        <div className="map-engine-toggle" role="group" aria-label="地图引擎">
-          <button
-            className={mapEngine === 'leaflet' ? 'active' : ''}
-            data-testid="map-engine-leaflet"
-            aria-pressed={mapEngine === 'leaflet'}
-            onClick={() => setMapEngine('leaflet')}
-          >
-            Leaflet
-          </button>
-          <button
-            className={mapEngine === 'mapcn' ? 'active' : ''}
-            data-testid="map-engine-mapcn"
-            aria-pressed={mapEngine === 'mapcn'}
-            onClick={() => setMapEngine('mapcn')}
-          >
-            mapcn
-          </button>
-        </div>
-        {mapEngine === 'leaflet' ? (
-          <MapCanvas key={`leaflet-${fitKey}`} routes={routes} selected={selected} showAll={showAll} />
-        ) : (
-          <Suspense fallback={<div className="map-engine-loading">正在加载 mapcn…</div>}>
-            <MapcnCanvas key={`mapcn-${fitKey}`} routes={routes} selected={selected} showAll={showAll} />
-          </Suspense>
-        )}
+        <MapCanvas key={fitKey} routes={routes} selected={selected} showAll={showAll} />
         <RouteDetails
           route={selected}
           onFit={() => setFitKey((key) => key + 1)}

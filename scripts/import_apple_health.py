@@ -11,7 +11,6 @@ import argparse
 import json
 import math
 import os
-import re
 import xml.etree.ElementTree as ET
 from datetime import datetime
 from pathlib import Path
@@ -22,6 +21,17 @@ TYPE_MAP = {
     "HKWorkoutActivityTypeCycling": "ride",
     "HKWorkoutActivityTypeWalking": "walk",
     "HKWorkoutActivityTypeHiking": "hike",
+}
+
+DISTANCE_TO_KM = {
+    "km": 1.0,
+    "m": 0.001,
+    "mi": 1.609344,
+}
+
+ENERGY_TO_KCAL = {
+    "kcal": 1.0,
+    "kj": 0.239005736,
 }
 
 
@@ -43,10 +53,6 @@ def parse_args() -> argparse.Namespace:
         help="RDP simplification tolerance in degrees (default: about 6m)",
     )
     return parser.parse_args()
-
-
-def attrs(line: str) -> dict[str, str]:
-    return dict(re.findall(r'(\w+)="([^"]*)"', line))
 
 
 def find_export_xml(export_dir: Path) -> Path:
@@ -80,14 +86,25 @@ def get_route_reference(workout: ET.Element) -> str | None:
     return None
 
 
-def get_stat(workout: ET.Element, needle: str) -> float | None:
+def get_stat(workout: ET.Element, needle: str) -> tuple[float, str] | None:
     for stat in workout.findall("WorkoutStatistics"):
         if needle in stat.attrib.get("type", "") and stat.attrib.get("sum"):
             try:
-                return float(stat.attrib["sum"])
+                return float(stat.attrib["sum"]), stat.attrib.get("unit", "")
             except ValueError:
                 return None
     return None
+
+
+def convert_stat(
+    stat: tuple[float, str] | None,
+    factors: dict[str, float],
+) -> float | None:
+    if stat is None:
+        return None
+    value, unit = stat
+    factor = factors.get(unit.strip().lower())
+    return value * factor if factor is not None else None
 
 
 def perpendicular_distance(point, start, end) -> float:
@@ -168,8 +185,12 @@ def parse_gpx(path: Path, tolerance: float) -> dict:
 
 
 def parse_date(value: str) -> str:
-    parsed = datetime.strptime(value[:19], "%Y-%m-%d %H:%M:%S")
-    return parsed.isoformat()
+    for date_format in ("%Y-%m-%d %H:%M:%S %z", "%Y-%m-%d %H:%M:%S"):
+        try:
+            return datetime.strptime(value, date_format).isoformat()
+        except ValueError:
+            continue
+    raise ValueError(f"无法解析日期：{value}")
 
 
 def main() -> None:
@@ -197,7 +218,8 @@ def main() -> None:
             skipped_invalid += 1
             continue
 
-        distance = get_stat(workout, "Distance")
+        distance = convert_stat(get_stat(workout, "Distance"), DISTANCE_TO_KM)
+        energy = convert_stat(get_stat(workout, "ActiveEnergyBurned"), ENERGY_TO_KCAL)
         duration = float(workout.attrib.get("duration", 0) or 0)
         start = parse_date(workout.attrib["startDate"])
         route_id = Path(route_ref).stem.replace("route_", "")
@@ -210,7 +232,7 @@ def main() -> None:
                 "year": int(start[:4]),
                 "durationMin": round(duration, 1),
                 "distanceKm": round(distance, 2) if distance is not None else None,
-                "energyKcal": round(get_stat(workout, "ActiveEnergyBurned") or 0),
+                "energyKcal": round(energy) if energy is not None else None,
                 "source": workout.attrib.get("sourceName", "Apple 健康"),
                 "file": route_ref,
                 **gpx,

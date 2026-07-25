@@ -2,35 +2,39 @@
   "name": "workout-route-view",
   "private": true,
   "version": "0.1.0",
+  "description": "Local Apple Health outdoor workout route viewer built with React and Leaflet",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SamXP2004/workoutRouteView.git"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "vite build",
+    "build:private": "vite build --mode private",
     "preview": "vite preview --host 127.0.0.1",
     "import-health": "python3 scripts/import_apple_health.py",
-    "test": "node --test",
+    "test": "npm run test:js && npm run test:python",
+    "test:js": "node --test",
+    "test:python": "python3 -m unittest discover -s tests -p 'test_*.py'",
     "typecheck": "tsc --noEmit",
-    "check": "npm run test && npm run typecheck && npm run build"
+    "privacy-check": "python3 scripts/check_privacy.py",
+    "check": "npm run test && npm run typecheck && npm run build && npm run privacy-check"
   },
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
-    "clsx": "^2.1.1",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.468.0",
-    "maplibre-gl": "^5.24.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "tailwind-merge": "^3.6.0"
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.3.3",
-    "@types/geojson": "^7946.0.16",
     "@types/react": "^18.3.31",
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react": "^4.3.4",
-    "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2",
     "vite": "^6.0.5"
   }

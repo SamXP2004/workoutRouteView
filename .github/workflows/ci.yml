@@ -16,6 +16,8 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.10'
       - run: npm ci
       - run: npm run check
-      - run: python3 -m py_compile scripts/import_apple_health.py

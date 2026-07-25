@@ -4,9 +4,19 @@ __pycache__/
 *.pyc
 .DS_Store
 npm-debug.log*
+.env
+.env.*
+!.env.example
 
 # Generated Apple Health data contains precise locations and timestamps.
 /public/data/routes.json
+
+# Raw Apple Health exports contain health records and precise locations.
+**/apple_health_export/
+**/export.xml
+**/导出.xml
+**/workout-routes/
+**/*.gpx
 
 # Local QA captures may contain personal route locations.
 /docs/*preview*.png
