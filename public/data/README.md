@@ -2,10 +2,12 @@
 
 本仓库不提供示例路线。
 
-使用者需要自行导出 Apple 健康数据，然后执行：
+Web 查看器不包含导入功能。使用者需要自行导出 Apple 健康数据，并通过独立的 [Workout Route Importer](https://github.com/SamXP2004/workout-route-importer) 生成本目录所需文件：
 
 ```bash
-npm run import-health -- "/path/to/apple_health_export"
+workout-route-importer import \
+  "/path/to/apple_health_export" \
+  --output "/path/to/workoutRouteView/public/data"
 ```
 
 脚本会生成：
@@ -18,4 +20,4 @@ public/data/
     <route-id>.json    单条路线的心率与海拔曲线
 ```
 
-解析工具为独立项目 [Workout Route Importer](https://github.com/SamXP2004/workout-route-importer)。生成文件包含精确位置、日期、设备来源和健康指标，因此不会提交到 Git，也不应上传或公开分享。
+生成文件包含精确位置、日期、设备来源和健康指标，因此不会提交到 Git，也不应上传或公开分享。

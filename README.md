@@ -69,18 +69,18 @@ apple_health_export/
 
 ```bash
 git clone https://github.com/SamXP2004/workoutRouteView.git
-git clone https://github.com/SamXP2004/workout-route-importer.git
-python3 -m pip install ./workout-route-importer
 cd workoutRouteView
 npm ci
 ```
 
 ## 三、处理健康数据
 
-数据解析由独立的 [Workout Route Importer](https://github.com/SamXP2004/workout-route-importer) 完成。在查看器项目目录执行：
+Web 查看器不包含数据导入功能，只读取已经生成的 JSON。请另行安装独立的 [Workout Route Importer](https://github.com/SamXP2004/workout-route-importer)，然后把处理结果输出到查看器的 `public/data`：
 
 ```bash
-npm run import-health -- "/绝对路径/apple_health_export"
+workout-route-importer import \
+  "/绝对路径/apple_health_export" \
+  --output "/绝对路径/workoutRouteView/public/data"
 ```
 
 CLI 会：
@@ -95,12 +95,12 @@ CLI 会：
 8. 生成路线索引、按路线拆分的指标文件和 `import-report.json`。
 9. 完整校验后原子替换 `public/data`；失败时保留上一次可用数据。
 
-可选参数：
+需要调整路线匹配容差时：
 
 ```bash
 workout-route-importer import \
   "/绝对路径/apple_health_export" \
-  --output public/data \
+  --output "/绝对路径/workoutRouteView/public/data" \
   --tolerance 0.00006
 ```
 

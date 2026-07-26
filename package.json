@@ -14,7 +14,6 @@
     "build": "vite build",
     "build:private": "vite build --mode private",
     "preview": "vite preview --host 127.0.0.1",
-    "import-health": "workout-route-importer import --output public/data",
     "test": "npm run test:js",
     "test:js": "node --test",
     "typecheck": "tsc --noEmit",

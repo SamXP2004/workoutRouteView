@@ -141,16 +141,22 @@ button { color: inherit; }
 .metric-current span { color: #879599; font-size: 10px; }
 .metric-current strong { font-size: 16px; }
 .metric-current small { color: #8d9a9e; font-size: 10px; }
-.metric-charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .metric-chart { min-width: 0; padding: 10px 11px 8px; border: 1px solid #2d3b3f; border-radius: 9px; background: #10191c; }
 .metric-chart-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
 .metric-chart-heading strong { font-size: 12px; }
 .metric-chart-heading span { color: #849296; font-size: 10px; text-align: right; }
-.metric-chart-interaction { height: 92px; outline: 0; cursor: crosshair; touch-action: pan-y; }
+.metric-series-legend { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 20px; margin-bottom: 5px; }
+.metric-series-legend div { display: flex; min-width: 0; align-items: center; gap: 7px; }
+.metric-series-legend strong { font-size: 11px; }
+.metric-series-legend span { min-width: 0; overflow: hidden; color: #849296; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.metric-series-swatch { width: 18px; height: 0; flex: 0 0 auto; border-top: 2px solid var(--metric-color); }
+.metric-series-swatch.elevation { border-top-style: dashed; }
+.metric-chart-interaction { height: 128px; outline: 0; cursor: crosshair; touch-action: pan-y; }
 .metric-chart-interaction:focus-visible { border-radius: 6px; box-shadow: 0 0 0 2px #4f9fff; }
 .metric-chart svg { display: block; width: 100%; height: 100%; overflow: visible; }
 .metric-gridline { stroke: #324044; stroke-width: 1; vector-effect: non-scaling-stroke; }
 .metric-line { fill: none; stroke: var(--metric-color); stroke-width: 2.25; vector-effect: non-scaling-stroke; }
+.metric-line.elevation { stroke-dasharray: 7 4; }
 .metric-cursor { stroke: #ffffffa8; stroke-width: 1; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
 .metric-focus-dot { fill: var(--metric-color); stroke: #fff; stroke-width: 3; vector-effect: non-scaling-stroke; }
 .metric-empty, .metric-status { display: grid; min-height: 92px; place-items: center; margin: 0; color: #829095; font-size: 12px; text-align: center; }
@@ -189,7 +195,6 @@ button { color: inherit; }
   .metric-current { grid-template-columns: repeat(2, 1fr); }
   .metric-current div:nth-child(3) { border-left: 0; border-top: 1px solid #2b383c; }
   .metric-current div:nth-child(4) { border-top: 1px solid #2b383c; }
-  .metric-charts { grid-template-columns: 1fr; }
   .metric-chart-interaction { height: 78px; }
 }
 

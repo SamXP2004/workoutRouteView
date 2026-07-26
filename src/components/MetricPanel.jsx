@@ -7,37 +7,68 @@ import {
 } from '../metrics'
 
 const CHART_WIDTH = 1000
-const CHART_HEIGHT = 96
+const CHART_HEIGHT = 128
 const EMPTY_SAMPLES = []
+const HEART_RATE_COLOR = '#ff6b6b'
+const ELEVATION_COLOR = '#d2f05a'
 
 function displayValue(value, digits = 0) {
   return Number.isFinite(value) ? Number(value).toFixed(digits) : '—'
 }
 
-function MetricChart({
-  label,
-  unit,
-  samples,
-  elapsedIndex,
-  valueIndex,
+function CombinedMetricChart({
+  heartRate,
+  elevation,
   durationSec,
   elapsedSec,
-  color,
-  summaryText,
   onElapsedSec,
 }) {
-  const geometry = useMemo(
+  const heartRateSamples = heartRate?.samples || EMPTY_SAMPLES
+  const elevationSamples = elevation?.samples || EMPTY_SAMPLES
+  const heartRateGeometry = useMemo(
     () => buildLineGeometry(
-      samples,
-      elapsedIndex,
-      valueIndex,
+      heartRateSamples,
+      0,
+      1,
       durationSec,
       CHART_WIDTH,
       CHART_HEIGHT,
     ),
-    [samples, elapsedIndex, valueIndex, durationSec],
+    [heartRateSamples, durationSec],
   )
-  const current = nearestSampleByElapsed(samples, elapsedIndex, elapsedSec)
+  const elevationGeometry = useMemo(
+    () => buildLineGeometry(
+      elevationSamples,
+      1,
+      2,
+      durationSec,
+      CHART_WIDTH,
+      CHART_HEIGHT,
+    ),
+    [elevationSamples, durationSec],
+  )
+  const heartRateCurrent = nearestSampleByElapsed(heartRateSamples, 0, elapsedSec)
+  const elevationCurrent = nearestSampleByElapsed(elevationSamples, 1, elapsedSec)
+  const sharedGeometry = heartRateGeometry || elevationGeometry
+  const heartRateSummary = [
+    Number.isFinite(heartRate?.averageBpm)
+      ? `平均 ${displayValue(heartRate.averageBpm)}`
+      : null,
+    Number.isFinite(heartRate?.minimumBpm) && Number.isFinite(heartRate?.maximumBpm)
+      ? `${displayValue(heartRate.minimumBpm)}–${displayValue(heartRate.maximumBpm)} bpm`
+      : null,
+  ].filter(Boolean).join(' · ')
+  const elevationSummary = [
+    Number.isFinite(elevation?.minimumM) && Number.isFinite(elevation?.maximumM)
+      ? `${displayValue(elevation.minimumM)}–${displayValue(elevation.maximumM)} m`
+      : null,
+    Number.isFinite(elevation?.ascentM)
+      ? `↑ ${displayValue(elevation.ascentM)}`
+      : null,
+    Number.isFinite(elevation?.descentM)
+      ? `↓ ${displayValue(elevation.descentM)}`
+      : null,
+  ].filter(Boolean).join(' · ')
   const updateFromPointer = (event) => {
     const bounds = event.currentTarget.getBoundingClientRect()
     const ratio = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width))
@@ -53,47 +84,80 @@ function MetricChart({
   return (
     <section className="metric-chart">
       <div className="metric-chart-heading">
-        <strong>{label}</strong>
-        {geometry ? (
-          <span>{summaryText || `${displayValue(geometry.minimum)}–${displayValue(geometry.maximum)} ${unit}`}</span>
-        ) : <span>无数据</span>}
+        <strong>心率与海拔</strong>
+        <span>共享运动时间轴</span>
       </div>
-      {geometry ? (
+      <div className="metric-series-legend" aria-label="曲线说明">
+        <div>
+          <i className="metric-series-swatch" style={{ '--metric-color': HEART_RATE_COLOR }} />
+          <strong>心率</strong>
+          <span>{heartRateGeometry ? heartRateSummary : '无数据'}</span>
+        </div>
+        <div>
+          <i className="metric-series-swatch elevation" style={{ '--metric-color': ELEVATION_COLOR }} />
+          <strong>海拔</strong>
+          <span>{elevationGeometry ? elevationSummary : '无数据'}</span>
+        </div>
+      </div>
+      {sharedGeometry ? (
         <div
           className="metric-chart-interaction"
           role="slider"
           tabIndex="0"
-          aria-label={`${label}时间位置`}
+          aria-label="心率与海拔时间位置"
           aria-valuemin="0"
           aria-valuemax={Math.round(durationSec)}
           aria-valuenow={Math.round(elapsedSec)}
+          aria-valuetext={formatElapsedSeconds(elapsedSec)}
           onPointerDown={updateFromPointer}
           onPointerMove={updateFromPointer}
           onKeyDown={moveByKeyboard}
         >
           <svg viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`} preserveAspectRatio="none" aria-hidden="true">
-            <line className="metric-gridline" x1="8" y1="48" x2="992" y2="48" />
-            <path className="metric-line" d={geometry.path} style={{ '--metric-color': color }} />
+            <line className="metric-gridline" x1="8" y1="64" x2="992" y2="64" />
+            {heartRateGeometry && (
+              <path
+                className="metric-line"
+                d={heartRateGeometry.path}
+                style={{ '--metric-color': HEART_RATE_COLOR }}
+              />
+            )}
+            {elevationGeometry && (
+              <path
+                className="metric-line elevation"
+                d={elevationGeometry.path}
+                style={{ '--metric-color': ELEVATION_COLOR }}
+              />
+            )}
             <line
               className="metric-cursor"
-              x1={geometry.x(elapsedSec)}
-              x2={geometry.x(elapsedSec)}
+              x1={sharedGeometry.x(elapsedSec)}
+              x2={sharedGeometry.x(elapsedSec)}
               y1="4"
-              y2="92"
+              y2="124"
             />
-            {current && (
+            {heartRateCurrent && heartRateGeometry && (
               <circle
                 className="metric-focus-dot"
-                cx={geometry.x(current[elapsedIndex])}
-                cy={geometry.y(current[valueIndex])}
+                cx={heartRateGeometry.x(heartRateCurrent[0])}
+                cy={heartRateGeometry.y(heartRateCurrent[1])}
                 r="7"
-                style={{ '--metric-color': color }}
+                style={{ '--metric-color': HEART_RATE_COLOR }}
+              />
+            )}
+            {elevationCurrent && elevationGeometry && (
+              <circle
+                className="metric-focus-dot"
+                cx={elevationGeometry.x(elevationCurrent[1])}
+                cy={elevationGeometry.y(elevationCurrent[2])}
+                r="7"
+                style={{ '--metric-color': ELEVATION_COLOR }}
               />
             )}
           </svg>
         </div>
       ) : (
-        <div className="metric-empty">这次运动没有可用的{label}采样。</div>
+        <div className="metric-empty">这次运动没有可用的心率或海拔采样。</div>
       )}
     </section>
   )
@@ -138,50 +202,14 @@ export default function MetricPanel({
             <div><span>心率</span><strong>{displayValue(heartRateSample?.[1])} <small>bpm</small></strong></div>
             <div><span>海拔</span><strong>{displayValue(elevationSample?.[2], 1)} <small>m</small></strong></div>
           </div>
-          <div className="metric-charts">
-            <MetricChart
-              label="心率"
-              unit="bpm"
-              samples={metrics.heartRate?.samples}
-              elapsedIndex={0}
-              valueIndex={1}
-              durationSec={durationSec}
-              elapsedSec={elapsedSec}
-              color="#ff6b6b"
-              summaryText={[
-                Number.isFinite(metrics.heartRate?.averageBpm)
-                  ? `平均 ${displayValue(metrics.heartRate.averageBpm)}`
-                  : null,
-                Number.isFinite(metrics.heartRate?.minimumBpm) && Number.isFinite(metrics.heartRate?.maximumBpm)
-                  ? `${displayValue(metrics.heartRate.minimumBpm)}–${displayValue(metrics.heartRate.maximumBpm)} bpm`
-                  : null,
-              ].filter(Boolean).join(' · ')}
-              onElapsedSec={onElapsedSec}
-            />
-            <MetricChart
-              label="海拔"
-              unit="m"
-              samples={metrics.elevation?.samples}
-              elapsedIndex={1}
-              valueIndex={2}
-              durationSec={durationSec}
-              elapsedSec={elapsedSec}
-              color="#d2f05a"
-              summaryText={[
-                Number.isFinite(metrics.elevation?.minimumM) && Number.isFinite(metrics.elevation?.maximumM)
-                  ? `${displayValue(metrics.elevation.minimumM)}–${displayValue(metrics.elevation.maximumM)} m`
-                  : null,
-                Number.isFinite(metrics.elevation?.ascentM)
-                  ? `↑ ${displayValue(metrics.elevation.ascentM)}`
-                  : null,
-                Number.isFinite(metrics.elevation?.descentM)
-                  ? `↓ ${displayValue(metrics.elevation.descentM)}`
-                  : null,
-              ].filter(Boolean).join(' · ')}
-              onElapsedSec={onElapsedSec}
-            />
-          </div>
-          <p className="metric-note">海拔为设备测量值；缺失的心率或海拔不会以 0 补齐。</p>
+          <CombinedMetricChart
+            heartRate={metrics.heartRate}
+            elevation={metrics.elevation}
+            durationSec={durationSec}
+            elapsedSec={elapsedSec}
+            onElapsedSec={onElapsedSec}
+          />
+          <p className="metric-note">两条曲线共享运动时间轴，并分别按本次运动的心率、海拔范围缩放。海拔为设备测量值；缺失数据不会以 0 补齐。</p>
         </>
       )}
       {status === 'ready' && !metrics && <p className="metric-status">这条路线没有可用的指标数据。</p>}

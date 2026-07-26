@@ -90,7 +90,7 @@ export default function App() {
     return (
       <main className="state-screen">
         <h1>路线数据还没准备好</h1>
-        <p>{error}。请先运行 <code>npm run import-health</code>。</p>
+        <p>{error}。请先使用独立数据处理工具生成 <code>public/data/routes.json</code>。</p>
       </main>
     )
   }
