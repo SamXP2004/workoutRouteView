@@ -183,11 +183,10 @@ export default function MetricPanel({
   const elevationSample = nearestSampleByElapsed(metrics?.elevation?.samples, 1, elapsedSec)
 
   return (
-    <section className="metric-panel" aria-label="运动指标联动面板">
+    <section className="metric-panel" aria-label="心率与海拔面板">
       <header className="metric-panel-header">
         <div>
-          <small>运动指标联动</small>
-          <strong>沿运动时间查看心率、海拔与地图位置</strong>
+          <strong>查看心率、海拔</strong>
         </div>
         <button onClick={onClose} aria-label="关闭指标面板"><X size={18} /></button>
       </header>
@@ -199,8 +198,12 @@ export default function MetricPanel({
           <div className="metric-current" aria-live="polite">
             <div><span>经过时间</span><strong>{formatElapsedSeconds(elapsedSec)}</strong></div>
             <div><span>距离</span><strong>{displayValue(elevationSample?.[0] / 1000, 2)} <small>km</small></strong></div>
-            <div><span>心率</span><strong>{displayValue(heartRateSample?.[1])} <small>bpm</small></strong></div>
-            <div><span>海拔</span><strong>{displayValue(elevationSample?.[2], 1)} <small>m</small></strong></div>
+            <div className="metric-current-colored" style={{ '--metric-color': HEART_RATE_COLOR }}>
+              <span>心率</span><strong>{displayValue(heartRateSample?.[1])} <small>bpm</small></strong>
+            </div>
+            <div className="metric-current-colored" style={{ '--metric-color': ELEVATION_COLOR }}>
+              <span>海拔</span><strong>{displayValue(elevationSample?.[2], 1)} <small>m</small></strong>
+            </div>
           </div>
           <CombinedMetricChart
             heartRate={metrics.heartRate}
@@ -209,7 +212,6 @@ export default function MetricPanel({
             elapsedSec={elapsedSec}
             onElapsedSec={onElapsedSec}
           />
-          <p className="metric-note">两条曲线共享运动时间轴，并分别按本次运动的心率、海拔范围缩放。海拔为设备测量值；缺失数据不会以 0 补齐。</p>
         </>
       )}
       {status === 'ready' && !metrics && <p className="metric-status">这条路线没有可用的指标数据。</p>}

@@ -131,7 +131,6 @@ button { color: inherit; }
 }
 .metric-panel-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 13px; }
 .metric-panel-header div { display: grid; gap: 3px; }
-.metric-panel-header small { color: var(--activity-color, #d2f05a); font-size: 11px; }
 .metric-panel-header strong { font-size: 14px; }
 .metric-panel-header button { display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid #3e4d51; border-radius: 8px; background: transparent; cursor: pointer; }
 .metric-panel-header button:hover { border-color: #718388; background: #182326; }
@@ -141,6 +140,8 @@ button { color: inherit; }
 .metric-current span { color: #879599; font-size: 10px; }
 .metric-current strong { font-size: 16px; }
 .metric-current small { color: #8d9a9e; font-size: 10px; }
+.metric-current .metric-current-colored strong,
+.metric-current .metric-current-colored small { color: var(--metric-color); }
 .metric-chart { min-width: 0; padding: 10px 11px 8px; border: 1px solid #2d3b3f; border-radius: 9px; background: #10191c; }
 .metric-chart-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
 .metric-chart-heading strong { font-size: 12px; }
@@ -161,8 +162,6 @@ button { color: inherit; }
 .metric-focus-dot { fill: var(--metric-color); stroke: #fff; stroke-width: 3; vector-effect: non-scaling-stroke; }
 .metric-empty, .metric-status { display: grid; min-height: 92px; place-items: center; margin: 0; color: #829095; font-size: 12px; text-align: center; }
 .metric-status.error { color: #ff8b8b; }
-.metric-note { margin: 9px 2px 0; color: #748286; font-size: 10px; }
-
 .state-screen { display: grid; place-content: center; min-height: 100%; padding: 24px; color: #dce3e5; background: #0b1113; text-align: center; }
 .state-screen h1 { margin: 0 0 10px; font-size: 24px; }
 .state-screen p { color: #93a0a4; }

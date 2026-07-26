@@ -36,7 +36,7 @@ function RouteDetails({
           disabled={!route.metricsFile}
           title={route.metricsFile ? undefined : '请重新导入健康数据以生成指标'}
         >
-          <Activity size={17} />{metricsOpen ? '收起指标' : '指标曲线'}
+          <Activity size={17} />{metricsOpen ? '收起指标' : '心率与海拔'}
         </button>
         <button onClick={onFit}><LocateFixed size={17} />适应路线</button>
         <button className="primary" onClick={onShowAll}>查看全部</button>
