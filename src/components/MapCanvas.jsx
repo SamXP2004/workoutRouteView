@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import L from 'leaflet'
 import { ACTIVITY } from '../constants'
+import { nearestRoutePoint } from '../metrics'
 
 const DEFAULT_TILE_URL = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
 const DEFAULT_TILE_ATTRIBUTION = '&copy; OpenStreetMap contributors &copy; CARTO'
@@ -14,10 +15,17 @@ function marker(color, label) {
   })
 }
 
-export default function MapCanvas({ routes, selected, showAll }) {
+export default function MapCanvas({
+  routes,
+  selected,
+  showAll,
+  focusElapsedSec,
+  onFocusElapsedSec,
+}) {
   const mapNode = useRef(null)
   const mapRef = useRef(null)
   const routeLayerRef = useRef(null)
+  const focusLayerRef = useRef(null)
 
   useEffect(() => {
     if (!mapNode.current || mapRef.current) return
@@ -31,8 +39,10 @@ export default function MapCanvas({ routes, selected, showAll }) {
     map.setView([31.23, 121.47], 10)
     mapRef.current = map
     routeLayerRef.current = L.layerGroup().addTo(map)
+    focusLayerRef.current = L.layerGroup().addTo(map)
     return () => {
       routeLayerRef.current = null
+      focusLayerRef.current = null
       mapRef.current = null
       map.remove()
     }
@@ -52,13 +62,25 @@ export default function MapCanvas({ routes, selected, showAll }) {
       const isSelected = selected?.id === route.id
       const color = (ACTIVITY[route.category] || ACTIVITY.other).color
       const latLngs = route.points.map((point) => [point[0], point[1]])
-      L.polyline(latLngs, {
+      const polyline = L.polyline(latLngs, {
+        className: isSelected ? 'route-line selected-route-line' : 'route-line',
         color,
         opacity: isSelected ? 1 : 0.38,
         weight: isSelected ? 5 : 1.6,
         lineCap: 'round',
         lineJoin: 'round',
       }).addTo(layer)
+      if (isSelected && onFocusElapsedSec) {
+        polyline.on('click', (event) => {
+          const timedPoints = route.points.filter((point) => Number.isFinite(point[3]))
+          if (!timedPoints.length) return
+          const nearest = timedPoints.reduce((best, point) => {
+            const distance = event.latlng.distanceTo(L.latLng(point[0], point[1]))
+            return distance < best.distance ? { point, distance } : best
+          }, { point: timedPoints[0], distance: Number.POSITIVE_INFINITY })
+          onFocusElapsedSec(nearest.point[3])
+        })
+      }
       bounds.push(...latLngs)
     })
 
@@ -72,7 +94,25 @@ export default function MapCanvas({ routes, selected, showAll }) {
     } else if (bounds.length) {
       map.fitBounds(bounds, { padding: [60, 60], maxZoom: 11 })
     }
-  }, [routes, selected, showAll])
+  }, [routes, selected, showAll, onFocusElapsedSec])
+
+  useEffect(() => {
+    const layer = focusLayerRef.current
+    if (!layer) return
+    layer.clearLayers()
+    if (!selected || !Number.isFinite(focusElapsedSec)) return
+    const point = nearestRoutePoint(selected.points, focusElapsedSec)
+    if (!point) return
+    const color = (ACTIVITY[selected.category] || ACTIVITY.other).color
+    L.circleMarker([point[0], point[1]], {
+      className: 'metric-map-focus',
+      radius: 7,
+      color: '#ffffff',
+      weight: 3,
+      fillColor: color,
+      fillOpacity: 1,
+    }).addTo(layer)
+  }, [selected, focusElapsedSec])
 
   return <div className="map" ref={mapNode} aria-label="运动轨迹地图" />
 }

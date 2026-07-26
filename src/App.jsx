@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import MapCanvas from './components/MapCanvas'
+import MetricPanel from './components/MetricPanel'
 import RouteDetails from './components/RouteDetails'
 import Sidebar from './components/Sidebar'
+import { localRouteRepository } from './routeRepository'
 
 export default function App() {
   const [data, setData] = useState(null)
@@ -12,13 +14,13 @@ export default function App() {
   const [selectedId, setSelectedId] = useState(null)
   const [showAll, setShowAll] = useState(true)
   const [fitKey, setFitKey] = useState(0)
+  const [metricsOpen, setMetricsOpen] = useState(false)
+  const [metricElapsedSec, setMetricElapsedSec] = useState(0)
+  const [metricState, setMetricState] = useState({ routeId: null, status: 'idle', data: null })
+  const metricsCache = useRef(new Map())
 
   useEffect(() => {
-    fetch('/data/routes.json')
-      .then((response) => {
-        if (!response.ok) throw new Error('未找到路线数据')
-        return response.json()
-      })
+    localRouteRepository.listRoutes()
       .then((payload) => {
         setData(payload)
         setSelectedId(payload.routes[0]?.id || null)
@@ -44,12 +46,51 @@ export default function App() {
   }, [routes, selectedId])
 
   const selected = routes.find((route) => route.id === selectedId) || routes[0] || null
+  const handleShowAll = useCallback(() => {
+    setCategory('all')
+    setYear('all')
+    setSearch('')
+    setShowAll(true)
+  }, [])
+  const handleToggleMetrics = useCallback(() => {
+    setMetricsOpen((open) => !open)
+  }, [])
+  const handleFit = useCallback(() => {
+    setFitKey((key) => key + 1)
+  }, [])
+
+  useEffect(() => {
+    setMetricElapsedSec(0)
+  }, [selected?.id])
+
+  useEffect(() => {
+    if (!metricsOpen || !selected) return undefined
+    const cached = metricsCache.current.get(selected.id)
+    if (cached !== undefined) {
+      setMetricState({ routeId: selected.id, status: 'ready', data: cached })
+      return undefined
+    }
+    let active = true
+    setMetricState({ routeId: selected.id, status: 'loading', data: null })
+    localRouteRepository.getRouteMetrics(selected)
+      .then((metrics) => {
+        if (!active) return
+        metricsCache.current.set(selected.id, metrics)
+        setMetricState({ routeId: selected.id, status: 'ready', data: metrics })
+      })
+      .catch(() => {
+        if (active) setMetricState({ routeId: selected.id, status: 'error', data: null })
+      })
+    return () => {
+      active = false
+    }
+  }, [metricsOpen, selected?.id])
 
   if (error) {
     return (
       <main className="state-screen">
         <h1>路线数据还没准备好</h1>
-        <p>{error}。请先运行 <code>npm run import-health</code>。</p>
+        <p>{error}。请先使用独立数据处理工具生成 <code>public/data/routes.json</code>。</p>
       </main>
     )
   }
@@ -72,16 +113,30 @@ export default function App() {
         onShowAll={setShowAll}
       />
       <section className="map-panel">
-        <MapCanvas key={fitKey} routes={routes} selected={selected} showAll={showAll} />
+        <MapCanvas
+          key={fitKey}
+          routes={routes}
+          selected={selected}
+          showAll={showAll}
+          focusElapsedSec={metricsOpen ? metricElapsedSec : null}
+          onFocusElapsedSec={setMetricElapsedSec}
+        />
+        {metricsOpen && (
+          <MetricPanel
+            route={selected}
+            metrics={metricState.routeId === selected?.id ? metricState.data : null}
+            status={metricState.routeId === selected?.id ? metricState.status : 'loading'}
+            elapsedSec={metricElapsedSec}
+            onElapsedSec={setMetricElapsedSec}
+            onClose={() => setMetricsOpen(false)}
+          />
+        )}
         <RouteDetails
           route={selected}
-          onFit={() => setFitKey((key) => key + 1)}
-          onShowAll={() => {
-            setCategory('all')
-            setYear('all')
-            setSearch('')
-            setShowAll(true)
-          }}
+          metricsOpen={metricsOpen}
+          onToggleMetrics={handleToggleMetrics}
+          onFit={handleFit}
+          onShowAll={handleShowAll}
         />
       </section>
     </main>

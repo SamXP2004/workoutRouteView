@@ -1,9 +1,16 @@
-import { LocateFixed } from 'lucide-react'
+import { memo } from 'react'
+import { Activity, LocateFixed } from 'lucide-react'
 import { ACTIVITY } from '../constants'
 import { formatDate, formatDuration, formatPace } from '../format'
 import ActivityIcon from './ActivityIcon'
 
-export default function RouteDetails({ route, onFit, onShowAll }) {
+function RouteDetails({
+  route,
+  metricsOpen,
+  onToggleMetrics,
+  onFit,
+  onShowAll,
+}) {
   if (!route) return null
   const meta = ACTIVITY[route.category] || ACTIVITY.other
   return (
@@ -19,13 +26,23 @@ export default function RouteDetails({ route, onFit, onShowAll }) {
       <dl>
         <div><dt>距离</dt><dd>{route.distanceKm?.toFixed(2) || '—'} <small>km</small></dd></div>
         <div><dt>时长</dt><dd>{formatDuration(route.durationMin)}</dd></div>
-        <div><dt>爬升</dt><dd>{route.ascentM} <small>m</small></dd></div>
+        <div><dt>爬升</dt><dd>{route.ascentM ?? '—'} <small>m</small></dd></div>
         <div><dt>配速</dt><dd>{formatPace(route)} <small>/km</small></dd></div>
       </dl>
       <div className="detail-actions">
+        <button
+          className={metricsOpen ? 'active' : ''}
+          onClick={onToggleMetrics}
+          disabled={!route.metricsFile}
+          title={route.metricsFile ? undefined : '请重新导入健康数据以生成指标'}
+        >
+          <Activity size={17} />{metricsOpen ? '收起指标' : '心率与海拔'}
+        </button>
         <button onClick={onFit}><LocateFixed size={17} />适应路线</button>
         <button className="primary" onClick={onShowAll}>查看全部</button>
       </div>
     </section>
   )
 }
+
+export default memo(RouteDetails)

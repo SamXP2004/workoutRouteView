@@ -1,12 +1,12 @@
 # 导入工具、运动指标与用户隔离规划
 
-状态：Draft v2
-日期：2026-07-22
+状态：Draft v3
+日期：2026-07-25
 适用项目：Workout Route View
 
 ## 1. 结论
 
-下一阶段不应直接在当前静态页面上增加“登录”和“上传”按钮。当前应用只有 React/Vite 前端，固定读取 `/data/routes.json`，没有 API、数据库、认证或服务端授权，因此无法提供真正的用户隔离。
+下一阶段不应直接在当前静态页面上增加“登录”和“上传”按钮。当前应用只有 React/Vite 前端，通过本地数据访问层读取静态 JSON，没有 API、数据库、认证或服务端授权，因此无法提供真正的用户隔离。
 
 推荐按以下顺序推进：
 
@@ -20,15 +20,25 @@
 
 ## 2. 当前架构与限制
 
+### 2026-07-25 已完成的本地指标纵切
+
+- 独立 CLI 已提取 Workout 心率统计，并把独立心率记录按时间窗口和来源匹配到运动。
+- `routes.json` 只保存路线、指标摘要和曲线文件引用；心率与海拔曲线按路线写入 `metrics/<route-id>.json`。
+- 前端已引入本地 `RouteRepository`，列表加载路线索引，展开指标面板时才加载对应曲线。
+- 心率、海拔和地图位置已通过 `elapsedSec` 联动；缺失值不会用 `0` 补齐。
+- 真实 Apple 健康导出已完成本机只读验证，但真实数据仍由 Git 忽略，不进入仓库。
+
+这次已经完成纯本机查看链路、独立 CLI、导入核心模块化、原子发布和导入报告，但不等于整套 Phase 1 和 Phase 2 已完成。重复导入识别、完整异常夹具、图形化导入向导、认证和多用户隔离仍未实现。
+
 ### 已确认的现状
 
 - 前端是 React + Vite 静态应用。
 - 前端使用 Leaflet 展示路线数据。
-- `src/App.jsx` 固定请求 `/data/routes.json`。
-- `scripts/import_apple_health.py` 从 Apple 健康导出目录读取 XML 和 GPX，直接生成单个 JSON 文件。
+- 前端通过本地 `RouteRepository` 读取 `/data/routes.json`，并按路线延迟读取 `metrics/*.json`。
+- 独立项目 `workout-route-importer` 从 Apple 健康导出目录读取 XML 和 GPX，生成路线索引、按路线拆分的指标文件和导入报告。
 - 原始 GPX 轨迹点包含 `<ele>` 和 `<time>`，部分扩展字段还包含速度、方向及定位精度。
 - 原始 XML 包含独立心率记录；部分 Workout 还包含平均、最低和最高心率统计。
-- 当前 `routes.json` 已保留每个简化轨迹点的海拔和累计爬升 `ascentM`，但没有心率字段。
+- 当前 `routes.json` 已保留简化轨迹、指标摘要和曲线文件引用；完整展示曲线位于 `metrics/*.json`。
 - 当前没有账号、会话、API、数据库、任务队列或对象存储。
 - 路线数据包含精确坐标、日期、设备来源和运动元数据，属于敏感位置与健康数据。
 
@@ -139,22 +149,21 @@ flowchart LR
 
 ### 4.1 导入核心
 
-把 `scripts/import_apple_health.py` 拆成无 UI、无存储耦合的 Python 模块：
+导入核心已迁移为独立的 Python CLI 项目 `workout-route-importer`：
 
 ```text
-importer/
-  parser.py          # 流式读取 Workout 和心率 Record
+src/workout_route_importer/
+  apple_health.py    # 流式读取 Workout 和心率 Record
   gpx.py             # GPX、海拔、时间、距离和轨迹简化
   metrics.py         # 心率关联、海拔曲线和统计
-  fingerprint.py     # 去重指纹
-  models.py          # 统一数据结构
-  pipeline.py        # 预检、解析、校验、发布流程
-  storage.py         # 存储接口，不绑定本地或云端
-scripts/
-  import_apple_health.py  # 保留为薄 CLI
+  core.py            # 导入流程编排
+  publisher.py       # staging、校验、原子发布和回滚
+  validator.py       # 输出契约校验
+  cli.py             # inspect、import 和 validate
+schemas/             # route、metrics 和 import report JSON Schema
 ```
 
-CLI 与未来服务端 worker 调用同一套导入核心，避免出现两套数据口径。
+查看器仅消费版本化 JSON，不再包含 Apple 健康解析实现。CLI 已使用真实完整导出验证，与迁移前的路线和指标输出一致。
 
 ### 4.2 数据访问层
 
@@ -370,7 +379,7 @@ DELETE /api/account/data               删除当前用户全部数据
 
 - 增加“导入 Apple 健康数据”入口。
 - 实现选择文件、预检、进度、结果和重试界面。
-- 路线详情增加心率与海拔摘要、按需加载曲线和地图联动。
+- 路线详情已具备心率与海拔摘要、按需加载曲线和地图联动；导入向导沿用现有数据访问接口。
 - 使用本地 API/worker 处理，不把大 XML 放进 React 主线程。
 - 保留现有命令行导入作为恢复路径。
 
@@ -423,16 +432,12 @@ DELETE /api/account/data               删除当前用户全部数据
 
 ## 12. 推荐的下一步
 
-下一次实现优先做 Phase 1，不先接认证供应商：
+独立 CLI、模块化解析、原子发布、导入报告、基础 JSON Schema 和真实数据回归已经完成。Phase 1 剩余项目：
 
-1. 建立 `importer/` 模块和脱敏测试夹具，覆盖心率、海拔、时区、缺失值和重叠 Workout。
-2. 把当前 CLI 改为调用导入核心，确保现有 272 条路线导入结果不回退。
-3. 扩展 WorkoutStatistics 解析，支持 `sum`、`average`、`minimum` 和 `maximum`。
-4. 实现心率 Record 的流式读取、时间窗口关联、来源设备消歧和导入诊断。
-5. 实现基于距离与时间的海拔 profile、累计爬升/下降及独立降采样。
-6. 定义 route summary、geometry、metrics、import report JSON Schema 和 schema version。
-7. 增加心率与海拔自动化测试，并用真实导出的脱敏小样做只读校验。
-8. 在前端引入 `RouteRepository` 和 `getRouteMetrics`，保持当前本地数据可用。
-9. 写一份 ADR，确认产品选择“纯本机”还是“在线多用户”。
+1. 为心率重叠匹配增加逐路线结构化诊断，而不只输出总匹配数。
+2. 增加确定性指纹和重复导入识别。
+3. 补充恶意 ZIP、异常坐标、重叠 Workout、跨时区和缺失值测试夹具。
+4. 完善 schema 迁移和向后兼容策略。
+5. 写一份 ADR，确认产品选择“纯本机”还是“在线多用户”。
 
-以上九项属于下一步 Phase 1。完成后再进入导入向导和曲线 UI，避免把解析、存储和展示逻辑写死在页面组件里。
+完成以上项目后再评估图形化导入向导。

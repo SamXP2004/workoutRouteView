@@ -14,10 +14,8 @@
     "build": "vite build",
     "build:private": "vite build --mode private",
     "preview": "vite preview --host 127.0.0.1",
-    "import-health": "python3 scripts/import_apple_health.py",
-    "test": "npm run test:js && npm run test:python",
+    "test": "npm run test:js",
     "test:js": "node --test",
-    "test:python": "python3 -m unittest discover -s tests -p 'test_*.py'",
     "typecheck": "tsc --noEmit",
     "privacy-check": "python3 scripts/check_privacy.py",
     "check": "npm run test && npm run typecheck && npm run build && npm run privacy-check"
