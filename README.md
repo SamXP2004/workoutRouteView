@@ -8,7 +8,14 @@
 
 ![Workout Route View 项目截图](docs/project-screenshot.png)
 
-截图使用项目作者的真实路线数据；路线 JSON 不会随仓库发布。
+截图展示当前版本的心率、海拔与地图联动效果，使用项目作者的真实路线数据；路线 JSON 不会随仓库发布。
+
+## 2026-07 更新
+
+- 心率与海拔合并到同一张图，共享运动时间轴和联动游标
+- 图表游标同步更新经过时间、距离、心率、海拔及 Leaflet 地图位置
+- 心率、海拔当前值使用与曲线一致的颜色
+- Apple 健康数据解析迁移到独立的 [Workout Route Importer](https://github.com/SamXP2004/workout-route-importer)，Web 查看器只负责加载和展示处理后的本地数据
 
 ## 功能
 
